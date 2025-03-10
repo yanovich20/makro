@@ -1,0 +1,46 @@
+div#list{
+  table th {
+      color:red;
+      font-size: large;
+      padding:5px;
+  }
+  table tr:nth-child(odd)
+  {
+      background-color: rgb(170,170,170);
+  }
+
+  #deal-list{
+      position:relative;
+  }
+  .loader{
+      position:absolute;
+      z-index:100;
+      top:50%;
+      left:50%;
+      transform: translateX(-50%) translateY(-50%);
+  }
+  table td,
+  table th {
+    border: 1px solid black;
+  }
+
+  .title{
+    position:relative;
+    cursor:pointer;
+  }
+  .headerSortDown 
+  {
+    position: absolute;
+    right:5px;
+  }
+  .headerSortUp {
+    position: absolute;
+    right:5px;
+    rotate: 180deg;
+  }
+
+  .headerSortDown,
+  .headerSortUp {
+    padding-right: 10px;
+  }
+}
