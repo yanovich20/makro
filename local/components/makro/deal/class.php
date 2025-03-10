@@ -1,6 +1,7 @@
 <?php
 use Bitrix\Main\Engine\Controller;
 use Bitrix\Main\Engine\CurrentUser;
+use Bitrix\Main\Engine\Response\DataType\Page;
 use Bitrix\Main\Engine\Contract\Controllerable;
 use Bitrix\Main\Engine\ActionFilter\Csrf;
 use Bitrix\Main\Engine\ActionFilter\HttpMethod;
@@ -8,40 +9,46 @@ use Bitrix\Main\Application;
 use Bitrix\Crm\DealTable;
 use Bitrix\Main\Loader;
 use Bitrix\Main\Context;
-use \Bitrix\Main\Errorable;
+use Bitrix\Main\Errorable;
+use Bitrix\Main\Error;
+use Bitrix\Main\ErrorCollection;
+use Bitrix\Main\UI\PageNavigation;
 
-class DealList  extends \CBitrixComponent implements  Controllerableб, Errorable{
+class DealList  extends \CBitrixComponent implements  Controllerable, Errorable{
 
+    private const PAGE_SIZE =5;
     private $curUserId;
-
-    protected $errorCollection;
+    private $nav;
+    protected $errorCollection = array();
     public function configureActions()
     {
         return [ 
             'getList' => [  
                 'prefilters' => [
-                    new HttpMethod(
-                        array(HttpMethod::METHOD_POST)
-                    ),
-                    new Csrf(),
                 ],
                 'postfilters' => []
             ],
         ];
     }
-    public function getDealListAction(){
+    public function onPrepareComponentParams($arParams)
+	{
+		$this->errorCollection = new ErrorCollection();
+	}
+    public function getDealListAction($action, PageNavigation $nav){
         try{
-        [$items,$order,$navHtml] = $this->getResult();
+        $nav->setPageSize(self::PAGE_SIZE);
+        $this->nav = $nav;
+        [$items,$order,$navHtml,$total] = $this->getResult();
         $_SESSION["order"] = $order;
         $_SESSION["sort"] = "TITLE";
         }
         catch(\Throwable $e)
         {
-            \Bitrix\Main\Diag\Debug::writeToFile($e->gtMesage,"error","/local/debug.log");
+            \Bitrix\Main\Diag\Debug::writeToFile($e->getMessage(),"error","/local/debug.log");
             $this->errorCollection[] = new Error($e->getMessage());
             return null;
         }
-        return ["ITEMS"=>$items,"ORDER"=>$order,"NAV_HTML"=>$navHtml];
+        return new Page("ITEMS",$items,$total);
     }
 
     public function executeComponent(){
@@ -51,7 +58,7 @@ class DealList  extends \CBitrixComponent implements  Controllerableб, Errorabl
         }
         catch(\Throwable $e)
         {
-            \Bitrix\Main\Diag\Debug::writeToFile($e->gtMesage,"error","/local/debug.log");
+            \Bitrix\Main\Diag\Debug::writeToFile($e->getMessage(),"error","/local/debug.log");
             $this->errorCollection[] = new Error($e->getMessage());
             return null;
         }
@@ -81,9 +88,9 @@ class DealList  extends \CBitrixComponent implements  Controllerableб, Errorabl
 
         $request = Context::getCurrent()->getRequest();
         $by = $request->get("sort");
-        if(!$by)
+        if(empty($by) ||$by ==="undefined")
         {
-            if(!$_SESSION["sort"])
+            if(empty($_SESSION["sort"]))
             {
                 $by = "ID";
             }
@@ -92,20 +99,20 @@ class DealList  extends \CBitrixComponent implements  Controllerableб, Errorabl
                 $by = $_SESSION["sort"];
             }
         }
-        echo "by". $by. "<br/>";
         $order = $request->get("order");
-        if(!$order)
+        if(empty($order)||$order === "undefined")
         {
-            if(!$_SESSION["order"])
+            if($_SESSION["order"]==="ASC")
                 $order = "ASC";
             else
-                $order = $_SESSION["order"];
+                $order = "DESC";
         }
-        
-        $nav = new \Bitrix\Main\UI\PageNavigation("nav-deal-list");
+        $nav = new PageNavigation("nav-deal-list");
         $nav->allowAllRecords(true)
-            ->setPageSize(5)
+            ->setPageSize(self::PAGE_SIZE)
             ->initFromUri();
+        if(!empty($this->nav))
+            $nav=$this->nav;
         $dealList = DealTable::getList(array(
             'order' => array($by => $order),
             'count_total' => true,
@@ -141,6 +148,6 @@ class DealList  extends \CBitrixComponent implements  Controllerableб, Errorabl
         );
 
         $pageNav = ob_get_clean();
-        return  [$dealList->fetchAll(), $order, $pageNav];
+        return  [$dealList->fetchAll(), $order, $pageNav,$dealList->getCount()];
     }
 }

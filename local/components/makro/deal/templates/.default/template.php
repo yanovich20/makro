@@ -12,7 +12,6 @@
       order:"ASC",
       isAsc:true,
       isDesc:false,
-      navHtml:`<?=htmlspecialchars($arResult["NAV_HTML"])?>`
     },
     actions:{ 
     },
@@ -32,9 +31,6 @@
       },
       setIsDesc(state,isDesc){
         state.isDesc = isDesc;
-      },
-      setNavHtml(state,navHtml){
-        state.navHtml = navHtml;
       }
     }
   })
@@ -44,5 +40,5 @@
     store: store,
     template: `<deal-list/>`,
   })
-
+  
 </script>
